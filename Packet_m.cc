@@ -183,6 +183,7 @@ Packet::Packet(const char *name, short kind) : ::omnetpp::cPacket(name,kind)
 {
     this->forwardLabel = 0;
     this->traceLabel = 0;
+    this->hopCount = 0;
 }
 
 Packet::Packet(const Packet& other) : ::omnetpp::cPacket(other)
@@ -204,41 +205,44 @@ Packet& Packet::operator=(const Packet& other)
 
 void Packet::copy(const Packet& other)
 {
-    this->noticeAddr = other.noticeAddr;
+    this->declaredAddr = other.declaredAddr;
     this->srcAddr = other.srcAddr;
     this->destAddr = other.destAddr;
     this->forwardLabel = other.forwardLabel;
     this->traceLabel = other.traceLabel;
+    this->hopCount = other.hopCount;
 }
 
 void Packet::parsimPack(omnetpp::cCommBuffer *b) const
 {
     ::omnetpp::cPacket::parsimPack(b);
-    doParsimPacking(b,this->noticeAddr);
+    doParsimPacking(b,this->declaredAddr);
     doParsimPacking(b,this->srcAddr);
     doParsimPacking(b,this->destAddr);
     doParsimPacking(b,this->forwardLabel);
     doParsimPacking(b,this->traceLabel);
+    doParsimPacking(b,this->hopCount);
 }
 
 void Packet::parsimUnpack(omnetpp::cCommBuffer *b)
 {
     ::omnetpp::cPacket::parsimUnpack(b);
-    doParsimUnpacking(b,this->noticeAddr);
+    doParsimUnpacking(b,this->declaredAddr);
     doParsimUnpacking(b,this->srcAddr);
     doParsimUnpacking(b,this->destAddr);
     doParsimUnpacking(b,this->forwardLabel);
     doParsimUnpacking(b,this->traceLabel);
+    doParsimUnpacking(b,this->hopCount);
 }
 
-const char * Packet::getNoticeAddr() const
+const char * Packet::getDeclaredAddr() const
 {
-    return this->noticeAddr.c_str();
+    return this->declaredAddr.c_str();
 }
 
-void Packet::setNoticeAddr(const char * noticeAddr)
+void Packet::setDeclaredAddr(const char * declaredAddr)
 {
-    this->noticeAddr = noticeAddr;
+    this->declaredAddr = declaredAddr;
 }
 
 const char * Packet::getSrcAddr() const
@@ -279,6 +283,16 @@ int Packet::getTraceLabel() const
 void Packet::setTraceLabel(int traceLabel)
 {
     this->traceLabel = traceLabel;
+}
+
+int Packet::getHopCount() const
+{
+    return this->hopCount;
+}
+
+void Packet::setHopCount(int hopCount)
+{
+    this->hopCount = hopCount;
 }
 
 class PacketDescriptor : public omnetpp::cClassDescriptor
@@ -346,7 +360,7 @@ const char *PacketDescriptor::getProperty(const char *propertyname) const
 int PacketDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 5+basedesc->getFieldCount() : 5;
+    return basedesc ? 6+basedesc->getFieldCount() : 6;
 }
 
 unsigned int PacketDescriptor::getFieldTypeFlags(int field) const
@@ -363,8 +377,9 @@ unsigned int PacketDescriptor::getFieldTypeFlags(int field) const
         FD_ISEDITABLE,
         FD_ISEDITABLE,
         FD_ISEDITABLE,
+        FD_ISEDITABLE,
     };
-    return (field>=0 && field<5) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<6) ? fieldTypeFlags[field] : 0;
 }
 
 const char *PacketDescriptor::getFieldName(int field) const
@@ -376,24 +391,26 @@ const char *PacketDescriptor::getFieldName(int field) const
         field -= basedesc->getFieldCount();
     }
     static const char *fieldNames[] = {
-        "noticeAddr",
+        "declaredAddr",
         "srcAddr",
         "destAddr",
         "forwardLabel",
         "traceLabel",
+        "hopCount",
     };
-    return (field>=0 && field<5) ? fieldNames[field] : nullptr;
+    return (field>=0 && field<6) ? fieldNames[field] : nullptr;
 }
 
 int PacketDescriptor::findField(const char *fieldName) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     int base = basedesc ? basedesc->getFieldCount() : 0;
-    if (fieldName[0]=='n' && strcmp(fieldName, "noticeAddr")==0) return base+0;
+    if (fieldName[0]=='d' && strcmp(fieldName, "declaredAddr")==0) return base+0;
     if (fieldName[0]=='s' && strcmp(fieldName, "srcAddr")==0) return base+1;
     if (fieldName[0]=='d' && strcmp(fieldName, "destAddr")==0) return base+2;
     if (fieldName[0]=='f' && strcmp(fieldName, "forwardLabel")==0) return base+3;
     if (fieldName[0]=='t' && strcmp(fieldName, "traceLabel")==0) return base+4;
+    if (fieldName[0]=='h' && strcmp(fieldName, "hopCount")==0) return base+5;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
@@ -411,8 +428,9 @@ const char *PacketDescriptor::getFieldTypeString(int field) const
         "string",
         "int",
         "int",
+        "int",
     };
-    return (field>=0 && field<5) ? fieldTypeStrings[field] : nullptr;
+    return (field>=0 && field<6) ? fieldTypeStrings[field] : nullptr;
 }
 
 const char **PacketDescriptor::getFieldPropertyNames(int field) const
@@ -444,6 +462,10 @@ const char **PacketDescriptor::getFieldPropertyNames(int field) const
             static const char *names[] = { "packetData",  nullptr };
             return names;
         }
+        case 5: {
+            static const char *names[] = { "packetData",  nullptr };
+            return names;
+        }
         default: return nullptr;
     }
 }
@@ -470,6 +492,9 @@ const char *PacketDescriptor::getFieldProperty(int field, const char *propertyna
             if (!strcmp(propertyname,"packetData")) return "";
             return nullptr;
         case 4:
+            if (!strcmp(propertyname,"packetData")) return "";
+            return nullptr;
+        case 5:
             if (!strcmp(propertyname,"packetData")) return "";
             return nullptr;
         default: return nullptr;
@@ -514,11 +539,12 @@ std::string PacketDescriptor::getFieldValueAsString(void *object, int field, int
     }
     Packet *pp = (Packet *)object; (void)pp;
     switch (field) {
-        case 0: return oppstring2string(pp->getNoticeAddr());
+        case 0: return oppstring2string(pp->getDeclaredAddr());
         case 1: return oppstring2string(pp->getSrcAddr());
         case 2: return oppstring2string(pp->getDestAddr());
         case 3: return long2string(pp->getForwardLabel());
         case 4: return long2string(pp->getTraceLabel());
+        case 5: return long2string(pp->getHopCount());
         default: return "";
     }
 }
@@ -533,11 +559,12 @@ bool PacketDescriptor::setFieldValueAsString(void *object, int field, int i, con
     }
     Packet *pp = (Packet *)object; (void)pp;
     switch (field) {
-        case 0: pp->setNoticeAddr((value)); return true;
+        case 0: pp->setDeclaredAddr((value)); return true;
         case 1: pp->setSrcAddr((value)); return true;
         case 2: pp->setDestAddr((value)); return true;
         case 3: pp->setForwardLabel(string2long(value)); return true;
         case 4: pp->setTraceLabel(string2long(value)); return true;
+        case 5: pp->setHopCount(string2long(value)); return true;
         default: return false;
     }
 }

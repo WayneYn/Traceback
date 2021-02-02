@@ -14,10 +14,11 @@
 //
 packet Packet
 {	
-    string noticeAddr @packetData;
+    string declaredAddr @packetData;
     string srcAddr @packetData;
     string destAddr @packetData;
     int forwardLabel @packetData;
     int traceLabel @packetData;
+    int hopCount  @packetData;
 };
 

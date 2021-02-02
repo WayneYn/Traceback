@@ -16,6 +16,8 @@ class Router: public cSimpleModule{
 private:
     int nodeIndex;
 
+    bool flag;
+
     int currentLabelIndex = 4;
 
     typedef map<int, int> RoutingTable;  // destaddr -> gateindex
@@ -33,9 +35,14 @@ private:
     typedef map<int, TraceLabelPojo> TracebackHelper;
     TracebackHelper tracebackHelper;
 
-    int buildLsp(string prefix, int inGate, int dstIndex);
+    typedef map<string, ValidationPojo> ValidationHelper;
+    ValidationHelper validationHelper;
+
+    int buildLsp(string src, string prefix, int inGate, int dstIndex, int hopCount);
 
     int findTraceLabel(int forwardLabel, int lastLabel);
+
+    void traceback(Packet *pk);
 
     cTopology *topo;
 
@@ -52,6 +59,7 @@ void Router::finish() {
 
 void Router::initialize() {
     nodeIndex = par("nodeIndex");
+    flag = par("flag");
     topo = new cTopology("topo");
     vector<string> nedTypes;
     nedTypes.push_back("Router");
@@ -89,9 +97,12 @@ void Router::handleMessage(cMessage *msg) {
     int inGate = msg->getArrivalGate()->getIndex();
 
     Packet *pk = check_and_cast<Packet *>(msg);
+    pk->setHopCount(pk->getHopCount() + 1);
 	
 	if (pk->getKind() == 0) {
+	    string declaredAddr = pk->getDeclaredAddr();
 		string destAddr = pk->getDestAddr();
+		EV << destAddr <<endl;
 		//string prefix = destAddr.substr(0, destAddr.size() - 1).append("*");
 
 		int dstIndex = Singleton::get_instance().getIndex(destAddr);
@@ -115,7 +126,7 @@ void Router::handleMessage(cMessage *msg) {
 			if (inLabel == 0) {
 				EV <<"no lsp available, need to set lsp first" << endl;
 				//inLabel = buildLsp(prefix, inGate, dstIndex);
-				inLabel = buildLsp(destAddr, inGate, dstIndex);
+				inLabel = buildLsp(declaredAddr, destAddr, inGate, dstIndex, 1);
 
 			}
 		}
@@ -132,22 +143,45 @@ void Router::handleMessage(cMessage *msg) {
 		}
 		EV << "TraceBack Label: " << pk->getTraceLabel()<< endl;
 
+        if (flag) {
+            string srcAddr = pk->getSrcAddr();
+            ValidationHelper::iterator vit = validationHelper.find(srcAddr);
+            if (vit == validationHelper.end()) {
+                bubble("find fake src address");
+                traceback(pk);
+                return;
+            }
+            else {
+                if (inGate != vit->second.intf || pk->getHopCount() != vit->second.hopCount) {
+                    bubble("find fake src address");
+                    traceback(pk);
+                    return;
+                }
+            }
+            bubble("src address validation passed");
+        }
+
 		send(pk, "out", outGateIndex);
 	} else {
-		int currentLabel = pk->getTraceLabel();
-		if (currentLabel == 3) {
-		    bubble("Find Start Router");
-		    return;
-		}
-		TracebackHelper::iterator it = tracebackHelper.find(currentLabel);
-		int lastLabel = it->second.lastLabel;
-		int inLabel = it->second.inLabel;
-		CacheByInLabel::iterator labelIt = labelCache.find(inLabel);
-		int inIntf = labelIt->second.inIf;
-
-		pk->setTraceLabel(lastLabel);
-		send(pk, "out", inIntf);
+		traceback(pk);
 	}
+}
+
+void Router::traceback(Packet *pk) {
+    int currentLabel = pk->getTraceLabel();
+    if (currentLabel == 3) {
+        bubble("Find Start Router");
+        return;
+    }
+    TracebackHelper::iterator it = tracebackHelper.find(currentLabel);
+    int lastLabel = it->second.lastLabel;
+    int inLabel = it->second.inLabel;
+    CacheByInLabel::iterator labelIt = labelCache.find(inLabel);
+    int inIntf = labelIt->second.inIf;
+
+    pk->setTraceLabel(lastLabel);
+    pk->setKind(1);
+    send(pk, "out", inIntf);
 }
 
 //查询对应的溯源标签
@@ -180,7 +214,13 @@ int Router::findTraceLabel(int inLabel, int lastLabel) {
 }
 
 // lsp尚未建立，建立lsp
-int Router::buildLsp(string prefix, int inGate, int dstIndex) {
+int Router::buildLsp(string declaredAddr, string prefix, int inGate, int dstIndex, int hopCount) {
+
+    if (flag) {
+        ValidationPojo* vv = new ValidationPojo(inGate, hopCount);
+        validationHelper.insert(make_pair(declaredAddr, *vv));
+    }
+
     int inLabel = 0;
     CacheByIP::iterator ipIt = ipCache.find(prefix);
     // 如果当前cache中有对应缓存，代表已经建立了从当前路由器到dst的lsp，可以合并标签
@@ -217,7 +257,7 @@ int Router::buildLsp(string prefix, int inGate, int dstIndex) {
         if (nextRouter != NULL) {
             // 帮助下一跳计算它的inGate
             int nextGate = thisNode->getPath(0)->getRemoteGate()->getIndex();
-            outLabel = nextRouter->buildLsp(prefix, nextGate, dstIndex);
+            outLabel = nextRouter->buildLsp(declaredAddr, prefix, nextGate, dstIndex, hopCount + 1);
         } else {
             //如果下一跳不为router，代表当前路由器为边界路由，无须再递归，直接设置outLabel为0
             outLabel = 0;

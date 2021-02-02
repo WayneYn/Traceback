@@ -37,22 +37,24 @@
  * //
  * packet Packet
  * {
- *     string noticeAddr \@packetData;
+ *     string declaredAddr \@packetData;
  *     string srcAddr \@packetData;
  *     string destAddr \@packetData;
  *     int forwardLabel \@packetData;
  *     int traceLabel \@packetData;
+ *     int hopCount \@packetData;
  * }
  * </pre>
  */
 class Packet : public ::omnetpp::cPacket
 {
   protected:
-    ::omnetpp::opp_string noticeAddr;
+    ::omnetpp::opp_string declaredAddr;
     ::omnetpp::opp_string srcAddr;
     ::omnetpp::opp_string destAddr;
     int forwardLabel;
     int traceLabel;
+    int hopCount;
 
   private:
     void copy(const Packet& other);
@@ -71,8 +73,8 @@ class Packet : public ::omnetpp::cPacket
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 
     // field getter/setter methods
-    virtual const char * getNoticeAddr() const;
-    virtual void setNoticeAddr(const char * noticeAddr);
+    virtual const char * getDeclaredAddr() const;
+    virtual void setDeclaredAddr(const char * declaredAddr);
     virtual const char * getSrcAddr() const;
     virtual void setSrcAddr(const char * srcAddr);
     virtual const char * getDestAddr() const;
@@ -81,6 +83,8 @@ class Packet : public ::omnetpp::cPacket
     virtual void setForwardLabel(int forwardLabel);
     virtual int getTraceLabel() const;
     virtual void setTraceLabel(int traceLabel);
+    virtual int getHopCount() const;
+    virtual void setHopCount(int hopCount);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const Packet& obj) {obj.parsimPack(b);}

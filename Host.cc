@@ -40,7 +40,7 @@ void Host::initialize() {
     nodeIndex = par("nodeIndex");
     cPar *ipPar = &par("IP");
     ip = ipPar->str();
-    //ip = ip.substr(1, ip.size() - 2);
+    ip = ip.substr(1, ip.size() - 2);
 
     Singleton& instance = Singleton::get_instance();
     instance.setIndex(ip, nodeIndex);
@@ -61,12 +61,19 @@ void Host::handleMessage(cMessage *msg) {
             destIndex = Singleton::get_instance().getIndex(destAddress);
         }
 
+        string srcAddress = Singleton::get_instance().getRandomHost();
+
+        EV <<"****True src address: " << ip <<endl;
+        EV <<"****Current src address: " << srcAddress << endl;
+
         char pkname[40];
         sprintf(pkname, "pk-h%d-to-h%d", nodeIndex - minus, destIndex - minus);
 
         Packet *pk = new Packet(pkname);
         pk->setKind(0);
         pk->setDestAddr(destAddress.data());
+        pk->setDeclaredAddr(ip.data());
+        pk->setSrcAddr(srcAddress.data());
         send(pk, "out", 0);
         if (hasGUI()) {
             bubble("Generating packet...");
@@ -74,10 +81,7 @@ void Host::handleMessage(cMessage *msg) {
         scheduleAt(simTime() + sendIATime->doubleValue(), generatePacket);
     } else {
         if (hasGUI()) {
-            bubble("Start Traceback!");
+            bubble("Arrived");
         }
-        Packet *pk = check_and_cast<Packet *>(msg);
-        pk->setKind(1);
-        send(pk, "out", 0);
     }
 }

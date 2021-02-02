@@ -76,6 +76,22 @@ public:
     }
 };
 
+class ValidationPojo {
+public:
+    int intf;
+    int hopCount;
+
+    ValidationPojo(int a, int b) {
+        intf = a;
+        hopCount = b;
+    }
+
+    ValidationPojo(const ValidationPojo& m) {
+        intf = m.intf;
+        hopCount = m.hopCount;
+    }
+};
+
 
 
 

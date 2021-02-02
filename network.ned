@@ -49,6 +49,7 @@ simple Router
 {
     parameters:
         int nodeIndex;
+        bool flag;
         @display("i=old/srouter");
 
     gates:
@@ -66,56 +67,66 @@ network Network
         r1: Router {
             parameters:
                 nodeIndex = 0;
+                flag = false;
                 @display("p=123.2,298.1");
         }
         r2: Router {
             parameters:
                 nodeIndex = 1;
+                flag = false;
                 @display("p=239.79999,292.6");
         }
         r3: Router {
             parameters:
                 nodeIndex = 2;
+                flag = false;
                 @display("p=212.29999,171.59999");
         }
         r4: Router {
             parameters:
                 nodeIndex = 3;
+                flag = true;
                 @display("p=493.9,189.2");
         }
         r5: Router {
             parameters:
                 nodeIndex = 4;
+                flag = false;
                 @display("p=675.39996,206.79999");
         }
         
         r6: Router {
             parameters:
                 nodeIndex = 5;
+                flag = false;
                 @display("p=477.4,306.9");
         }
 
         r7: Router {
             parameters:
                 nodeIndex = 6;
+                flag = false;
                 @display("p=691.89996,306.9");
         }
 
         r8: Router {
             parameters:
                 nodeIndex = 7;
+                flag = false;
                 @display("p=691.89996,416.9");
         }
 
         r9: Router {
             parameters:
                 nodeIndex = 8;
+                flag = false;
                 @display("p=325.59998,115.5");
         }
 
         r10: Router {
             parameters:
                 nodeIndex = 9;
+                flag = false;
                 @display("p=451,63.8");
         }
 
