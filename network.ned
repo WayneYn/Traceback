@@ -85,7 +85,7 @@ network Network
         r4: Router {
             parameters:
                 nodeIndex = 3;
-                flag = true;
+                flag = false;
                 @display("p=493.9,189.2");
         }
         r5: Router {

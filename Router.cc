@@ -5,6 +5,7 @@
 #include "Packet_m.h"
 #include "MPLSLabel.cc"
 #include <vector>
+#include <iomanip>
 
 using namespace omnetpp;
 using namespace std;
@@ -26,7 +27,7 @@ private:
     typedef map<int, MPLSLabelByInLabel> CacheByInLabel;
     CacheByInLabel labelCache;
 
-    typedef map<string, vector<int>> CacheByIP;
+    typedef map<string, map<int, int>> CacheByIP;
     CacheByIP ipCache;
 
     typedef map<int, map<int, int>> TracebackTable;
@@ -54,6 +55,14 @@ protected:
 Define_Module(Router)
 
 void Router::finish() {
+    cout <<"********R" << nodeIndex << endl;
+    cout << setw(20) <<"inGate" << setw(20) << "inLabel" << setw(20) << "dstAddr" << setw(20) << "outGate" << setw(20) << "outLabel" <<endl;
+    CacheByInLabel::iterator iter = labelCache.begin();
+    while (iter != labelCache.end()) {
+        MPLSLabelByInLabel temp = iter->second;
+        cout<< setw(20) << temp.inIf << setw(20) << iter->first << setw(20) <<temp.dst << setw(20) <<temp.outIf << setw(20) <<temp.outLabel << endl;
+        iter++;
+    }
     delete topo;
 }
 
@@ -102,26 +111,28 @@ void Router::handleMessage(cMessage *msg) {
 	if (pk->getKind() == 0) {
 	    string declaredAddr = pk->getDeclaredAddr();
 		string destAddr = pk->getDestAddr();
-		EV << destAddr <<endl;
 		//string prefix = destAddr.substr(0, destAddr.size() - 1).append("*");
 
 		int dstIndex = Singleton::get_instance().getIndex(destAddr);
 
 		int inLabel = pk->getForwardLabel();
+
 		// inlabel为0，代表是入口路由器，尚未分配标签
 		if (inLabel == 0) {
 			//CacheByIP::iterator it = ipCache.find(prefix);
 			CacheByIP::iterator it = ipCache.find(destAddr);
-			if (it != ipCache.end()) {
-				for (auto inL : it->second) {
-					CacheByInLabel::iterator it = labelCache.find(inL);
-					if (inGate == it->second.inIf) {
-						EV << "find same lsp" <<endl;
-						inLabel = inL;
-						break;
-					}
-				}
+			if (it == ipCache.end()) {
+			    map<int, int> mm;
+			    ipCache.insert(make_pair(destAddr, mm));
+			} else {
+			    map<int, int> temp = it->second;
+			    map<int, int>::iterator ii = temp.find(inGate);
+			    if (ii != temp.end()) {
+			        EV << "find same lsp" <<endl;
+			        inLabel = ii->second;
+			    }
 			}
+
 			// inLabel仍未0.代表当前lsp尚未建立，首先建立lsp，分发标签
 			if (inLabel == 0) {
 				EV <<"no lsp available, need to set lsp first" << endl;
@@ -130,10 +141,11 @@ void Router::handleMessage(cMessage *msg) {
 
 			}
 		}
-
+		EV << "InLabel: " << inLabel << endl;
 		CacheByInLabel::iterator it = labelCache.find(inLabel);
 		int outGateIndex = it->second.outIf;
 		pk->setForwardLabel(it->second.outLabel);
+		EV << "OutLabel: " << pk->getForwardLabel() << endl;
 
 		int lastLabel = pk->getTraceLabel();
 		if (lastLabel == 0) {
@@ -223,23 +235,20 @@ int Router::buildLsp(string declaredAddr, string prefix, int inGate, int dstInde
 
     int inLabel = 0;
     CacheByIP::iterator ipIt = ipCache.find(prefix);
-    // 如果当前cache中有对应缓存，代表已经建立了从当前路由器到dst的lsp，可以合并标签
-    if (ipIt != ipCache.end()) {
-        EV <<"try to find same lsp in buildLsp" << endl;
-        vector<int> list = ipIt->second;
-        for (auto inL : list) {
-            CacheByInLabel::iterator it = labelCache.find(inL);
-            if (inGate == it->second.inIf) {
-                EV <<"find same lsp in buildLsp" << endl;
-                inLabel = inL;
-                break;
-            }
-        }
+    if (ipIt == ipCache.end()) {
+        map<int, int> mm;
+        ipCache.insert(make_pair(prefix, mm));
     } else {
-        EV <<"insert new vector"<<endl;
-		vector<int> vv;
-		ipCache.insert(make_pair(prefix, vv));
-	}
+        // 如果当前cache中有对应缓存，代表已经建立了从当前路由器到dst的lsp，可以合并标签
+        EV <<"try to find same lsp in buildLsp" << endl;
+        map<int, int> list = ipIt->second;
+        map<int, int>::iterator listIt = list.find(inGate);
+        if (listIt != list.end()) {
+            inLabel = listIt->second;
+            EV <<"*************************find same lsp in buildLsp" << endl;
+        }
+    }
+
 
     if (inLabel == 0) {
         EV <<"have to build new lsp" << endl;
@@ -264,9 +273,9 @@ int Router::buildLsp(string declaredAddr, string prefix, int inGate, int dstInde
         }
 
         inLabel = label++;
-        ipCache.find(prefix)->second.push_back(inLabel);
+        ipCache.find(prefix)->second.insert(make_pair(inGate, inLabel));
 
-        MPLSLabelByInLabel* mm = new MPLSLabelByInLabel(inGate, outLabel, outGate);
+        MPLSLabelByInLabel* mm = new MPLSLabelByInLabel(inGate, outLabel, outGate, prefix);
         labelCache.insert(make_pair(inLabel, *mm));
     }
     return inLabel;

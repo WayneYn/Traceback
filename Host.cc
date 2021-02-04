@@ -13,6 +13,7 @@ private:
     const int minus = 9;
     std::string ip;
     cPar *sendIATime;
+    int destIndex = 10;
     // state
     cMessage *generatePacket;
 
@@ -54,12 +55,20 @@ void Host::initialize() {
 
 void Host::handleMessage(cMessage *msg) {
     if (msg == generatePacket) {
-        string destAddress = Singleton::get_instance().getRandomHost();
-        int destIndex = Singleton::get_instance().getIndex(destAddress);
-        while (nodeIndex == destIndex) {
-            destAddress = Singleton::get_instance().getRandomHost();
-            destIndex = Singleton::get_instance().getIndex(destAddress);
+        if (destIndex == nodeIndex) {
+            destIndex++;
         }
+        if (destIndex == 21) {
+            return;
+        }
+
+        string destAddress = Singleton::get_instance().getIp(destIndex);
+//        string destAddress = Singleton::get_instance().getRandomHost();
+//        int destIndex = Singleton::get_instance().getIndex(destAddress);
+//        while (nodeIndex == destIndex) {
+//            destAddress = Singleton::get_instance().getRandomHost();
+//            destIndex = Singleton::get_instance().getIndex(destAddress);
+//        }
 
         string srcAddress = Singleton::get_instance().getRandomHost();
 
@@ -78,10 +87,15 @@ void Host::handleMessage(cMessage *msg) {
         if (hasGUI()) {
             bubble("Generating packet...");
         }
+        destIndex++;
         scheduleAt(simTime() + sendIATime->doubleValue(), generatePacket);
     } else {
         if (hasGUI()) {
             bubble("Arrived");
         }
+//        Packet *pk = check_and_cast<Packet *>(msg);
+//        pk->setKind(1);
+//        send(pk, "out", 0);
+
     }
 }

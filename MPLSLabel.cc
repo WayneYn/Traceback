@@ -11,12 +11,14 @@ public:
     int inIf;
     int outLabel;
     int outIf;
+    string dst;
 
 
-    MPLSLabelByInLabel(int a, int b, int c) {
+    MPLSLabelByInLabel(int a, int b, int c, string s) {
         inIf = a;
         outLabel = b;
         outIf = c;
+        dst.assign(s);
 
     }
 
@@ -24,39 +26,24 @@ public:
         inIf = m.inIf;
         outIf = m.outIf;
         outLabel = m.outLabel;
+        dst.assign(m.dst);
     }
-
-    string str() {
-            string s = " inIf: " + to_string(inIf) + " outLabel: " + to_string(outLabel) + " outIf: " + to_string(outIf);
-            return s;
-        }
 };
 
 class MPLSLabelByIP {
 public:
-    int inLabel;
-    int inIf;
     int outLabel;
     int outIf;
 
 
-    MPLSLabelByIP(int a, int b, int c, int d) {
-        inLabel = a;
-        inIf = b;
+    MPLSLabelByIP(int c, int d) {
         outLabel = c;
         outIf = d;
     }
 
     MPLSLabelByIP(const MPLSLabelByIP& m) {
-        inLabel = m.inLabel;
-        inIf = m.inIf;
-        outIf = m.outIf;
         outLabel = m.outLabel;
-    }
-
-    string str() {
-        string s = "inLabel: " + to_string(inLabel) + " inIf: " + to_string(inIf) + " outLabel: " + to_string(outLabel) + " outIf: " + to_string(outIf);
-        return s;
+        outIf = m.outIf;
     }
 };
 
