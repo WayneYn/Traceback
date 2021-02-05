@@ -32,34 +32,41 @@ public:
 
 class MPLSLabelByIP {
 public:
+    int inLabel;
     int outLabel;
     int outIf;
 
 
-    MPLSLabelByIP(int c, int d) {
+    MPLSLabelByIP(int b, int c, int d) {
+        inLabel = b;
         outLabel = c;
         outIf = d;
     }
 
     MPLSLabelByIP(const MPLSLabelByIP& m) {
+        inLabel = m.inLabel;
         outLabel = m.outLabel;
         outIf = m.outIf;
+    }
+
+    string str() {
+        return "inLabel: " + to_string(inLabel) + "   outLabel: " + to_string(outLabel) + "   outIf: " + to_string(outIf);
     }
 };
 
 class TraceLabelPojo {
 public:
-    int inLabel;
     int lastLabel;
+    int inGate;
 
     TraceLabelPojo(int a, int b) {
-        inLabel = a;
-        lastLabel = b;
+        lastLabel = a;
+        inGate = b;
     }
 
     TraceLabelPojo(const TraceLabelPojo& m) {
-        inLabel = m.inLabel;
         lastLabel = m.lastLabel;
+        inGate = m.inGate;
     }
 };
 

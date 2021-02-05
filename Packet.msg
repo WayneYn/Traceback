@@ -20,5 +20,6 @@ packet Packet
     int forwardLabel @packetData;
     int traceLabel @packetData;
     int hopCount  @packetData;
+    int entrance @packetData;
 };
 

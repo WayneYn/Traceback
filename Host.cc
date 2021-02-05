@@ -59,7 +59,7 @@ void Host::handleMessage(cMessage *msg) {
             destIndex++;
         }
         if (destIndex == 21) {
-            return;
+            destIndex = 10;
         }
 
         string destAddress = Singleton::get_instance().getIp(destIndex);
@@ -83,6 +83,8 @@ void Host::handleMessage(cMessage *msg) {
         pk->setDestAddr(destAddress.data());
         pk->setDeclaredAddr(ip.data());
         pk->setSrcAddr(srcAddress.data());
+        pk->setForwardLabel(0);
+        pk->setEntrance(0);
         send(pk, "out", 0);
         if (hasGUI()) {
             bubble("Generating packet...");
@@ -93,9 +95,9 @@ void Host::handleMessage(cMessage *msg) {
         if (hasGUI()) {
             bubble("Arrived");
         }
-//        Packet *pk = check_and_cast<Packet *>(msg);
-//        pk->setKind(1);
-//        send(pk, "out", 0);
+        Packet *pk = check_and_cast<Packet *>(msg);
+        pk->setKind(1);
+        send(pk, "out", 0);
 
     }
 }
