@@ -44,6 +44,7 @@
  *     int traceLabel \@packetData;
  *     int hopCount \@packetData;
  *     int entrance \@packetData;
+ *     int64_t sendTime \@packetData;
  * }
  * </pre>
  */
@@ -57,6 +58,7 @@ class Packet : public ::omnetpp::cPacket
     int traceLabel;
     int hopCount;
     int entrance;
+    int64_t sendTime;
 
   private:
     void copy(const Packet& other);
@@ -89,6 +91,8 @@ class Packet : public ::omnetpp::cPacket
     virtual void setHopCount(int hopCount);
     virtual int getEntrance() const;
     virtual void setEntrance(int entrance);
+    virtual int64_t getSendTime() const;
+    virtual void setSendTime(int64_t sendTime);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const Packet& obj) {obj.parsimPack(b);}

@@ -185,6 +185,7 @@ Packet::Packet(const char *name, short kind) : ::omnetpp::cPacket(name,kind)
     this->traceLabel = 0;
     this->hopCount = 0;
     this->entrance = 0;
+    this->sendTime = 0;
 }
 
 Packet::Packet(const Packet& other) : ::omnetpp::cPacket(other)
@@ -213,6 +214,7 @@ void Packet::copy(const Packet& other)
     this->traceLabel = other.traceLabel;
     this->hopCount = other.hopCount;
     this->entrance = other.entrance;
+    this->sendTime = other.sendTime;
 }
 
 void Packet::parsimPack(omnetpp::cCommBuffer *b) const
@@ -225,6 +227,7 @@ void Packet::parsimPack(omnetpp::cCommBuffer *b) const
     doParsimPacking(b,this->traceLabel);
     doParsimPacking(b,this->hopCount);
     doParsimPacking(b,this->entrance);
+    doParsimPacking(b,this->sendTime);
 }
 
 void Packet::parsimUnpack(omnetpp::cCommBuffer *b)
@@ -237,6 +240,7 @@ void Packet::parsimUnpack(omnetpp::cCommBuffer *b)
     doParsimUnpacking(b,this->traceLabel);
     doParsimUnpacking(b,this->hopCount);
     doParsimUnpacking(b,this->entrance);
+    doParsimUnpacking(b,this->sendTime);
 }
 
 const char * Packet::getDeclaredAddr() const
@@ -309,6 +313,16 @@ void Packet::setEntrance(int entrance)
     this->entrance = entrance;
 }
 
+int64_t Packet::getSendTime() const
+{
+    return this->sendTime;
+}
+
+void Packet::setSendTime(int64_t sendTime)
+{
+    this->sendTime = sendTime;
+}
+
 class PacketDescriptor : public omnetpp::cClassDescriptor
 {
   private:
@@ -374,7 +388,7 @@ const char *PacketDescriptor::getProperty(const char *propertyname) const
 int PacketDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 7+basedesc->getFieldCount() : 7;
+    return basedesc ? 8+basedesc->getFieldCount() : 8;
 }
 
 unsigned int PacketDescriptor::getFieldTypeFlags(int field) const
@@ -393,8 +407,9 @@ unsigned int PacketDescriptor::getFieldTypeFlags(int field) const
         FD_ISEDITABLE,
         FD_ISEDITABLE,
         FD_ISEDITABLE,
+        FD_ISEDITABLE,
     };
-    return (field>=0 && field<7) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<8) ? fieldTypeFlags[field] : 0;
 }
 
 const char *PacketDescriptor::getFieldName(int field) const
@@ -413,8 +428,9 @@ const char *PacketDescriptor::getFieldName(int field) const
         "traceLabel",
         "hopCount",
         "entrance",
+        "sendTime",
     };
-    return (field>=0 && field<7) ? fieldNames[field] : nullptr;
+    return (field>=0 && field<8) ? fieldNames[field] : nullptr;
 }
 
 int PacketDescriptor::findField(const char *fieldName) const
@@ -428,6 +444,7 @@ int PacketDescriptor::findField(const char *fieldName) const
     if (fieldName[0]=='t' && strcmp(fieldName, "traceLabel")==0) return base+4;
     if (fieldName[0]=='h' && strcmp(fieldName, "hopCount")==0) return base+5;
     if (fieldName[0]=='e' && strcmp(fieldName, "entrance")==0) return base+6;
+    if (fieldName[0]=='s' && strcmp(fieldName, "sendTime")==0) return base+7;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
@@ -447,8 +464,9 @@ const char *PacketDescriptor::getFieldTypeString(int field) const
         "int",
         "int",
         "int",
+        "int64_t",
     };
-    return (field>=0 && field<7) ? fieldTypeStrings[field] : nullptr;
+    return (field>=0 && field<8) ? fieldTypeStrings[field] : nullptr;
 }
 
 const char **PacketDescriptor::getFieldPropertyNames(int field) const
@@ -488,6 +506,10 @@ const char **PacketDescriptor::getFieldPropertyNames(int field) const
             static const char *names[] = { "packetData",  nullptr };
             return names;
         }
+        case 7: {
+            static const char *names[] = { "packetData",  nullptr };
+            return names;
+        }
         default: return nullptr;
     }
 }
@@ -520,6 +542,9 @@ const char *PacketDescriptor::getFieldProperty(int field, const char *propertyna
             if (!strcmp(propertyname,"packetData")) return "";
             return nullptr;
         case 6:
+            if (!strcmp(propertyname,"packetData")) return "";
+            return nullptr;
+        case 7:
             if (!strcmp(propertyname,"packetData")) return "";
             return nullptr;
         default: return nullptr;
@@ -571,6 +596,7 @@ std::string PacketDescriptor::getFieldValueAsString(void *object, int field, int
         case 4: return long2string(pp->getTraceLabel());
         case 5: return long2string(pp->getHopCount());
         case 6: return long2string(pp->getEntrance());
+        case 7: return int642string(pp->getSendTime());
         default: return "";
     }
 }
@@ -592,6 +618,7 @@ bool PacketDescriptor::setFieldValueAsString(void *object, int field, int i, con
         case 4: pp->setTraceLabel(string2long(value)); return true;
         case 5: pp->setHopCount(string2long(value)); return true;
         case 6: pp->setEntrance(string2long(value)); return true;
+        case 7: pp->setSendTime(string2int64(value)); return true;
         default: return false;
     }
 }

@@ -6,6 +6,8 @@
 #include "MPLSLabel.cc"
 #include <vector>
 #include <iomanip>
+#include <iostream>
+#include <windows.h>
 
 using namespace omnetpp;
 using namespace std;
@@ -55,22 +57,22 @@ protected:
 Define_Module(Router)
 
 void Router::finish() {
-    cout <<"********R" << nodeIndex << endl;
-    cout << setw(15) <<"in Intf" << setw(15) << "inLabel" << setw(15) << "dstAddr" << setw(15) << "out Intf" << setw(15) << "outLabel" <<endl;
-    CacheByInLabel::iterator iter = labelCache.begin();
-    while (iter != labelCache.end()) {
-        MPLSLabelByInLabel temp = iter->second;
-        if (iter->first < 0) {
-            cout<< setw(15) << "null" << setw(15) << "null";
-        }
-        else {
-            cout<< setw(15) << temp.inIf << setw(15) << iter->first;
-        }
-        cout<< setw(15) <<temp.dst;
-        cout<< setw(15) <<temp.outIf;
-        cout<< setw(15) <<temp.outLabel << endl;
-        iter++;
-    }
+    cout <<"********R" << nodeIndex << " Traceback Label Table"<< endl;
+//    cout << setw(15) <<"in Intf" << setw(15) << "inLabel" << setw(15) << "dstAddr" << setw(15) << "out Intf" << setw(15) << "outLabel" <<endl;
+//    CacheByInLabel::iterator iter = labelCache.begin();
+//    while (iter != labelCache.end()) {
+//        MPLSLabelByInLabel temp = iter->second;
+//        if (iter->first < 0) {
+//            cout<< setw(15) << "null" << setw(15) << "null";
+//        }
+//        else {
+//            cout<< setw(15) << temp.inIf << setw(15) << iter->first;
+//        }
+//        cout<< setw(15) <<temp.dst;
+//        cout<< setw(15) <<temp.outIf;
+//        cout<< setw(15) <<temp.outLabel << endl;
+//        iter++;
+//    }
 
     cout << setw(15) <<"Current TL" << setw(15) << "in Intf" << setw(15) << "Last TL" <<endl;
     TracebackHelper::iterator it = tracebackHelper.begin();
@@ -121,6 +123,12 @@ void Router::initialize() {
 }
 
 void Router::handleMessage(cMessage *msg) {
+    LARGE_INTEGER m_nFreq;
+    LARGE_INTEGER m_nBeginTime;
+    LARGE_INTEGER nEndTime;
+    QueryPerformanceFrequency(&m_nFreq); // 获取时钟周期
+    QueryPerformanceCounter(&m_nBeginTime); // 获取时钟计数
+
     int inGate = msg->getArrivalGate()->getIndex();
 
     Packet *pk = check_and_cast<Packet *>(msg);
@@ -165,32 +173,34 @@ void Router::handleMessage(cMessage *msg) {
 
 		pk->setForwardLabel(outLabel);
 
-		int lastLabel = pk->getTraceLabel();
-		if (lastLabel == 0) {
-			pk->setTraceLabel(3);
-		} else {
-			pk->setTraceLabel(findTraceLabel(inGate, lastLabel));
-		}
-		EV << "TraceBack Label: " << pk->getTraceLabel()<< endl;
+//		int lastLabel = pk->getTraceLabel();
+//		if (lastLabel == 0) {
+//			pk->setTraceLabel(3);
+//		} else {
+//			pk->setTraceLabel(findTraceLabel(inGate, lastLabel));
+//		}
+//		EV << "TraceBack Label: " << pk->getTraceLabel()<< endl;
 
-        if (flag) {
-            string srcAddr = pk->getSrcAddr();
-            ValidationHelper::iterator vit = validationHelper.find(srcAddr);
-            if (vit == validationHelper.end()) {
-                bubble("find fake src address");
-                traceback(pk);
-                return;
-            }
-            else {
-                if (inGate != vit->second.intf || pk->getHopCount() != vit->second.hopCount) {
-                    bubble("find fake src address");
-                    traceback(pk);
-                    return;
-                }
-            }
-            bubble("src address validation passed");
-        }
+//        if (flag) {
+//            string srcAddr = pk->getSrcAddr();
+//            ValidationHelper::iterator vit = validationHelper.find(srcAddr);
+//            if (vit == validationHelper.end()) {
+//                bubble("find fake src address");
+//                traceback(pk);
+//                return;
+//            }
+//            else {
+//                if (inGate != vit->second.intf || pk->getHopCount() != vit->second.hopCount) {
+//                    bubble("find fake src address");
+//                    traceback(pk);
+//                    return;
+//                }
+//            }
+//            bubble("src address validation passed");
+//        }
 
+        QueryPerformanceCounter(&nEndTime);
+        cout << (double)(nEndTime.QuadPart-m_nBeginTime.QuadPart)*1000/m_nFreq.QuadPart << endl;
 		send(pk, "out", outGateIndex);
 	} else {
 		traceback(pk);
@@ -325,5 +335,3 @@ int Router::buildLsp(bool isLER, string declaredAddr, string prefix, int inGate,
     }
     return inLabel;
 }
-
-

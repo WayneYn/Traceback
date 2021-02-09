@@ -3,6 +3,7 @@
 #include "TraceUtils.cc"
 #include "Packet_m.h"
 #include <string>
+#include <stdio.h>
 
 using namespace omnetpp;
 using namespace std;
@@ -10,10 +11,10 @@ using namespace std;
 class Host: public cSimpleModule{
 private:
     int nodeIndex;
-    const int minus = 9;
+    const int minus = 14;
     std::string ip;
     cPar *sendIATime;
-    int destIndex = 10;
+    int destIndex = 15;
     // state
     cMessage *generatePacket;
 
@@ -50,7 +51,9 @@ void Host::initialize() {
 
     generatePacket = new cMessage("nextPacket");
     sendIATime = &par("sendIaTime");  // volatile parameter
-    scheduleAt(simTime() + sendIATime->doubleValue(), generatePacket);
+    if (nodeIndex == 15) {
+        scheduleAt(simTime() + sendIATime->doubleValue(), generatePacket);
+    }
 }
 
 void Host::handleMessage(cMessage *msg) {
@@ -58,8 +61,8 @@ void Host::handleMessage(cMessage *msg) {
         if (destIndex == nodeIndex) {
             destIndex++;
         }
-        if (destIndex == 21) {
-            destIndex = 10;
+        if (destIndex == 25) {
+            return;
         }
 
         string destAddress = Singleton::get_instance().getIp(destIndex);
@@ -97,7 +100,9 @@ void Host::handleMessage(cMessage *msg) {
         }
         Packet *pk = check_and_cast<Packet *>(msg);
         pk->setKind(1);
-        send(pk, "out", 0);
-
+        char pkname[40];
+        sprintf(pkname, "traceback path");
+        pk->setName(pkname);
+//        send(pk, "out", 0);
     }
 }

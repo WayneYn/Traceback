@@ -21,5 +21,6 @@ packet Packet
     int traceLabel @packetData;
     int hopCount  @packetData;
     int entrance @packetData;
+    int64_t sendTime @packetData;
 };
 
